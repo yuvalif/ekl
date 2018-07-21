@@ -3,6 +3,7 @@ Implementation of [economic paper](http://www1.idc.ac.il/Faculty/Eckstein/pdf/EK
 
 > Note: [octave](https://www.gnu.org/software/octave/) or Matlab must be installed
 
+## taxes
 In case of octave, use:
 ```octave --no-gui gross_to_net_all.m```
 The results will be in a file called ```output.txt```, they will have the same format as the ```1965wages.txt``` input file, with two additional columns: net income, and net income calculated separatly for husband and wide.
