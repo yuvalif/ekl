@@ -1,3 +1,4 @@
+#pragma once
 
 float tax_brackets(int i, int j);
 

@@ -1,3 +1,4 @@
+#pragma once
 
 struct wage_calc_result
 {

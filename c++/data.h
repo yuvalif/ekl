@@ -1,3 +1,4 @@
+#pragma once
 
 int husband_prev_kids(int i, int j);
 int husband_prev_emp(int t);

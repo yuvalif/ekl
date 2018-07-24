@@ -1,8 +1,5 @@
 #include <random>
-
-const int DRAW_F = 100;
-const int DRAW_B = 100;
-const int T_MAX = 65 - 15;
+#include "global_params.h"
 
 float epsilon_f_arr[DRAW_F*3][T_MAX][8];
 float epsilon_b_arr[DRAW_B][T_MAX][6];

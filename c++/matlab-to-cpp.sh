@@ -8,7 +8,7 @@ sed -i 's/end/}/g' $1
 sed -i 's/\.\.\.//g' $1
 
 # fix "elseif"
-sed -i 's/elseif/}\nelse if/g' $1
+sed -i 's/elseif/else if/g' $1
 
 # fix "else"
 sed -i 's/else/}\nelse\n{/g' $1
