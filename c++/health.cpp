@@ -1,17 +1,10 @@
+#include "health.h"
 #include "global_params.h"
 #include "random_values.h"
 #include "math.h"
 #include "assert.h"
 
-struct health_result
-{
-    int HEALTH;
-    int S_GOOD;
-    int S_FAIR;
-    int S_POOR;
-};
-
-health_result health(int S_GOOD, int S_FAIR, int S_POOR, int draw_f, int t, int sex)
+health_result_t health(int S_GOOD, int S_FAIR, int S_POOR, int draw_f, int t, int sex)
 {
     //h1 = global_param(1);    //good health to good health
     //h2 = global_param(1);    //fair health to good health
@@ -30,7 +23,7 @@ health_result health(int S_GOOD, int S_FAIR, int S_POOR, int draw_f, int t, int 
         assert(0);
     }            
 
-    health_result result;
+    health_result_t result;
     if (sex == 1)
     {
         if (w_draws(draw_f,t,1) <= p_good_health)

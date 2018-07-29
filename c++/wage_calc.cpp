@@ -3,12 +3,11 @@
 #include "random_values.h"
 #include "global_params.h"
 
-
-wage_calc_result wage_calc(int EXP, int prev_state, int prev_capacity, int year_of_school, int HEALTH, 
+wage_calc_result_t wage_calc(int EXP, int prev_state, int prev_capacity, int year_of_school, int HEALTH, 
         float draw_f, int t, int HSD, int HSG, int SC, int CG, int PC, int ability, int sex)
 {
     
-    wage_calc_result result;
+    wage_calc_result_t result;
     result.CHOOSE_WORK_F = 0;
     result.CHOOSE_WORK_P = 0;
     result.wage_full = 0;

@@ -1,20 +1,13 @@
 #include <string.h>
 #include <assert.h>
 #include <math.h>
-
+#include "calculate_utility.h"
 #include "global_params.h"
 #include "gross_to_net.h"
 #include "random_values.h"
 
-struct calculate_utility_result
-{
-    // 25 OPTIONS: 7 OPTIONS AS SINGLE + 19 AS MARRIED
-    float U_W[26];
-    float U_H[26];
-};
 
-
-calculate_utility_result calculate_utility(int cohort, int cb_const, int cb_per_child, int W_N, int H_N, int C_N, 
+calculate_utility_result_t calculate_utility(int cohort, int cb_const, int cb_per_child, int W_N, int H_N, int C_N, 
         float wage_full_w, float wage_part_w, float wage_full_h, float wage_part_h, float capacity_w, float capacity_h, 
         int M_minus_1, float W_HEALTH, float H_HEALTH, float P_minus_1, int draw_f, int t, float Q_UTILITY ,float HS_UTILITY, float WS_UTILITY,
         float home_time_h_m, float home_time_h_um, float home_time_w, int CHOOSE_WORK_F_h, int CHOOSE_WORK_P_h, int CHOOSE_WORK_F_w, int CHOOSE_WORK_P_w, 
@@ -169,9 +162,12 @@ calculate_utility_result calculate_utility(int cohort, int cb_const, int cb_per_
 
     if (W_N > 0)
     {
-        children_utility_single_w_ue = pow((row1*pow((1.0-HP),row0)     + row3*pow((eta1*net_income_single_w_ue),row0)+(1.0-row1-row2-row3)*pow((W_N),row0)),(1.0/row0));
-        children_utility_single_w_ef = pow((                              row3*pow((eta1*net_income_single_w_ef),row0)+(1.0-row1-row2-row3)*pow((W_N),row0)),(1.0/row0));
-        children_utility_single_w_ep = pow((row1*pow((1.0-0.5-HP),row0) + row3*pow((eta1*net_income_single_w_ep),row0)+(1.0-row1-row2-row3)*pow((W_N),row0)),(1.0/row0));
+        children_utility_single_w_ue = pow((row1*pow((1.0-HP),row0)     + 
+                    row3*pow((eta1*net_income_single_w_ue),row0)+(1.0-row1-row2-row3)*pow((W_N),row0)),(1.0/row0));
+        children_utility_single_w_ef = pow((                              
+                    row3*pow((eta1*net_income_single_w_ef),row0)+(1.0-row1-row2-row3)*pow((W_N),row0)),(1.0/row0));
+        children_utility_single_w_ep = pow((row1*pow((1.0-0.5-HP),row0) + 
+                    row3*pow((eta1*net_income_single_w_ep),row0)+(1.0-row1-row2-row3)*pow((W_N),row0)),(1.0/row0));
     }
     else if (W_N == 0)
     {
@@ -190,9 +186,12 @@ calculate_utility_result calculate_utility(int cohort, int cb_const, int cb_per_
 
     if (H_N > 0)
     {
-        children_utility_single_h_ue = pow((row2*pow((1.0-HP),row0)     + row3*pow((eta1*net_income_single_h_ue),row0)+(1.0-row1-row2-row3)*pow((H_N),row0)),(1.0/row0));
-        children_utility_single_h_ef = pow((                              row3*pow((eta1*net_income_single_h_ef),row0)+(1.0-row1-row2-row3)*pow((H_N),row0)),(1.0/row0));
-        children_utility_single_h_ep = pow((row2*pow((1.0-0.5-HP),row0) + row3*pow((eta1*net_income_single_h_ep),row0)+(1.0-row1-row2-row3)*pow((H_N),row0)),(1.0/row0));
+        children_utility_single_h_ue = pow((row2*pow((1.0-HP),row0)     + 
+                    row3*pow((eta1*net_income_single_h_ue),row0)+(1.0-row1-row2-row3)*pow((H_N),row0)),(1.0/row0));
+        children_utility_single_h_ef = pow((                              
+                    row3*pow((eta1*net_income_single_h_ef),row0)+(1.0-row1-row2-row3)*pow((H_N),row0)),(1.0/row0));
+        children_utility_single_h_ep = pow((row2*pow((1.0-0.5-HP),row0) + 
+                    row3*pow((eta1*net_income_single_h_ep),row0)+(1.0-row1-row2-row3)*pow((H_N),row0)),(1.0/row0));
     }
     else if (H_N ==0)
     {
@@ -223,15 +222,24 @@ calculate_utility_result calculate_utility(int cohort, int cb_const, int cb_per_
         if (C_N > 0)
         {
             // first index wife, second husband
-            children_utility_married_ue_ue = pow((row1*pow((1.0-HP),row0)    + row2*pow((1.0-HP),row0)    +row3*pow((eta1*net_income_married_ue_ue),row0)+(1-row1-row2-row3)*pow((C_N),row0)),(1.0/row0));
-            children_utility_married_ue_ef = pow((row1*pow((1.0-HP),row0)    +                        row3*pow((eta1*net_income_married_ue_ef),row0)+(1-row1-row2-row3)*pow((C_N),row0)),(1.0/row0));
-            children_utility_married_ue_ep = pow((row1*pow((1.0-HP),row0)    + row2*pow((1.0-0.5-HP),row0)+row3*pow((eta1*net_income_married_ue_ep),row0)+(1-row1-row2-row3)*pow((C_N),row0)),(1.0/row0));
-            children_utility_married_ef_ue = pow((                      + row2*pow((1.0-HP),row0)    +row3*pow((eta1*net_income_married_ef_ue),row0)+(1-row1-row2-row3)*pow((C_N),row0)),(1.0/row0));
-            children_utility_married_ep_ue = pow((row1*pow((1.0-0.5-HP),row0)+ row2*pow((1.0-HP),row0)    +row3*pow((eta1*net_income_married_ep_ue),row0)+(1-row1-row2-row3)*pow((C_N),row0)),(1.0/row0));
-            children_utility_married_ef_ef = pow((                                               row3*pow((eta1*net_income_married_ef_ef),row0)+(1-row1-row2-row3)*pow((C_N),row0)),(1.0/row0));
-            children_utility_married_ef_ep = pow((                      + row2*pow((1.0-0.5-HP),row0)+row3*pow((eta1*net_income_married_ef_ep),row0)+(1-row1-row2-row3)*pow((C_N),row0)),(1.0/row0));
-            children_utility_married_ep_ep = pow((row1*pow((1.0-0.5-HP),row0)+ row2*pow((1.0-0.5-HP),row0)+row3*pow((eta1*net_income_married_ep_ep),row0)+(1-row1-row2-row3)*pow((C_N),row0)),(1.0/row0));
-            children_utility_married_ep_ef = pow((row1*pow((1.0-0.5-HP),row0)+                        row3*pow((eta1*net_income_married_ep_ef),row0)+(1-row1-row2-row3)*pow((C_N),row0)),(1.0/row0));
+            children_utility_married_ue_ue = pow((row1*pow((1.0-HP),row0)    + 
+                        row2*pow((1.0-HP),row0)    +row3*pow((eta1*net_income_married_ue_ue),row0)+(1-row1-row2-row3)*pow((C_N),row0)),(1.0/row0));
+            children_utility_married_ue_ef = pow((row1*pow((1.0-HP),row0)    +
+                        row3*pow((eta1*net_income_married_ue_ef),row0)+(1-row1-row2-row3)*pow((C_N),row0)),(1.0/row0));
+            children_utility_married_ue_ep = pow((row1*pow((1.0-HP),row0)    + 
+                        row2*pow((1.0-0.5-HP),row0)+row3*pow((eta1*net_income_married_ue_ep),row0)+(1-row1-row2-row3)*pow((C_N),row0)),(1.0/row0));
+            children_utility_married_ef_ue = pow((                      + 
+                        row2*pow((1.0-HP),row0)    +row3*pow((eta1*net_income_married_ef_ue),row0)+(1-row1-row2-row3)*pow((C_N),row0)),(1.0/row0));
+            children_utility_married_ep_ue = pow((row1*pow((1.0-0.5-HP),row0)+ 
+                        row2*pow((1.0-HP),row0)    +row3*pow((eta1*net_income_married_ep_ue),row0)+(1-row1-row2-row3)*pow((C_N),row0)),(1.0/row0));
+            children_utility_married_ef_ef = pow((                                               
+                        row3*pow((eta1*net_income_married_ef_ef),row0)+(1-row1-row2-row3)*pow((C_N),row0)),(1.0/row0));
+            children_utility_married_ef_ep = pow((                      + 
+                        row2*pow((1.0-0.5-HP),row0)+row3*pow((eta1*net_income_married_ef_ep),row0)+(1-row1-row2-row3)*pow((C_N),row0)),(1.0/row0));
+            children_utility_married_ep_ep = pow((row1*pow((1.0-0.5-HP),row0)+ 
+                        row2*pow((1.0-0.5-HP),row0)+row3*pow((eta1*net_income_married_ep_ep),row0)+(1-row1-row2-row3)*pow((C_N),row0)),(1.0/row0));
+            children_utility_married_ep_ef = pow((row1*pow((1.0-0.5-HP),row0)+                        
+                        row3*pow((eta1*net_income_married_ep_ef),row0)+(1-row1-row2-row3)*pow((C_N),row0)),(1.0/row0));
         }
         else if (C_N == 0)
         {
@@ -871,7 +879,7 @@ calculate_utility_result calculate_utility(int cohort, int cb_const, int cb_per_
         }
     }
 
-    calculate_utility_result result;
+    calculate_utility_result_t result;
 
     memcpy(result.U_H, U_H, 26);
     memcpy(result.U_W, U_W, 26);

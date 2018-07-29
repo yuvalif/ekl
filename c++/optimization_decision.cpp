@@ -1,14 +1,7 @@
 #include "global_params.h"
+#include "optimization_decision.h"
 
-struct optimization_desicion_result
-{
-    float optimization_desicion_w_v;
-    float optimization_desicion_w_i;
-    float optimization_desicion_h_v;
-    float optimization_desicion_h_i;
-};
-
-optimization_desicion_result optimization_desicion(float U_W[], float U_H[])
+optimization_decision_result_t optimization_decision(float U_W[], float U_H[])
 {
     float outside_option_w_v = U_W[1]; // 1-singe+unemployed + non-pregnant
     float outside_option_w_i = 1;
@@ -46,7 +39,7 @@ optimization_desicion_result optimization_desicion(float U_W[], float U_H[])
         outside_option_h_v = U_H[5]; // 5-singe+ schooling
         outside_option_h_i = 5;
     }
-    optimization_desicion_result result;
+    optimization_decision_result_t result;
     // marriage decision - choose the max out of all options
     result.optimization_desicion_w_v = outside_option_w_v;
     result.optimization_desicion_w_i = outside_option_w_i;
