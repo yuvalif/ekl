@@ -8,5 +8,5 @@ struct optimization_decision_result_t
     float optimization_desicion_h_i;
 };
 
-optimization_decision_result_t optimization_desicion(float U_W[], float U_H[]);
+optimization_decision_result_t optimization_decision(float U_W[], float U_H[]);
 

@@ -9,10 +9,11 @@
 #include "wage_calc.h"
 #include "calculate_utility.h"
 #include "optimization_decision.h"
+#include "objective_function.h"
 
 using namespace octave_utils;
 
-float estimation_f(int husband_prev_kids, int husband_prev_emp, int wife_prev_kids, int wife_prev_emp,
+double estimation_f(int husband_prev_kids, int husband_prev_emp, int wife_prev_kids, int wife_prev_emp,
         float emp_mrate_child_wage, float emp_mrate_child_wage_m, float emp_mrate_child_wage_um,
         float emp_m_with, float emp_m_without, float emp_um_with, float emp_um_without, 
         float emp_wage_by_educ, float emp_wage_by_educ_m, float emp_wage_by_educ_um,
@@ -154,15 +155,6 @@ float estimation_f(int husband_prev_kids, int husband_prev_emp, int wife_prev_ki
     decrease_low_ability = -(exp(global_param(110))/(1+exp(global_param(110))))/3;
     decrease_medium_ability = -(exp(global_param(111))/(1+exp(global_param(111))))/3;
     // random shocks variance-covariance matrix - correlations? identification?
-    Matrix sigma = zeros(8,8);
-    sigma(1,1) = exp(global_param(112));    //variance wife ability
-    sigma(2,2) = exp(global_param(113));    //variance husband ability
-    sigma(3,3) = exp(global_param(114));    //variance home time wife
-    sigma(4,4) = exp(global_param(115));    //variance home time husband
-    sigma(5,5) = exp(global_param(116));    //wife's wage error variance
-    sigma(6,6) = exp(global_param(117));    //husband's wage error variance
-    sigma(7,7) = exp(global_param(118));    //match quality variance
-    sigma(8,8) = exp(global_param(119));    //pregnancy
     //uti11lity from schooling
     float s1_w = global_param(120);    //constant
     float s2_w = global_param(121);    //parents are CG
@@ -645,7 +637,7 @@ float estimation_f(int husband_prev_kids, int husband_prev_emp, int wife_prev_ki
             ///////////////////////////////////////////////////////////////////////
             //   MAXIMIZATION - MARRIAGE + WORK  + PREGNANCY DESICIONS           //
             ///////////////////////////////////////////////////////////////////////
-            optimization_decision_result_t optimization_decision_result = optimization_desicion(calculate_utilirt_result.U_W, 
+            optimization_decision_result_t optimization_decision_result = optimization_decision(calculate_utilirt_result.U_W, 
                     calculate_utilirt_result.U_H);
             ////////////////////////////////////////////////////////
             //  UPDARE T+1 STATE VARIABLES ACCORDING TO THE DECISION
@@ -983,15 +975,55 @@ float estimation_f(int husband_prev_kids, int husband_prev_emp, int wife_prev_ki
                 kids(t,cohort) = kids(t,cohort) +	W_N ;          // # of children by school group
                 kids_um(t,cohort) = kids_um(t,cohort) + W_N;
             }
-
-            /////////////////////////////////////////////////////////////////////////////////////////////
+            ////////////////////////////////////////////
             //           END MOMENTS
-            /////////////////////////////////////////////////////////////////////////////////////////////
+            ///////////////////////////////////////////
         } // close the time loop
     } // close the draw_f loop
-    ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-    //            CLOSE SOLVING FORWARD           //////////////////////////////////////////////////////////////////////////////////
-    ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-    return 0.0;
+    ////////////////////////////////////////////
+    //            CLOSE SOLVING FORWARD ///////
+    ///////////////////////////////////////////
+   
+    // calculate objective function based on moments
+    return objective_function(
+            emp_w,
+            emp_h, 
+            emp_m_w, 
+            emp_um_w, 
+            emp_m_no_kids_w,
+            emp_m_with_kids_w,
+            emp_um_no_kids_w,
+            emp_um_kids_w,
+            wages_w,
+            wages_m_h,
+            wages_m_w,
+            wages_um_w,
+            married,
+            newborn,
+            newborn_m,
+            newborn_um,
+            divorce_arr,
+            kids,
+            kids_m,
+            kids_um,
+            count_emp_h,
+            count_emp_m_no_kids_w,
+            count_emp_m_with_kids_w,
+            count_emp_um_no_kids_w,
+            count_emp_um_kids_w,
+            count_newborn_m,
+            count_newborn_um,
+            school_dist_h,
+            school_dist_w,
+            count_school_dist_h,
+            assortative_mating,
+            count_assortative_mating,
+            emp_by_educ,
+            count_emp_by_educ,
+            wage_by_educ,
+            count_wage_by_educ,
+            health_dist_h,
+            health_dist_w,
+            count_health_dist_h);
 }
 
