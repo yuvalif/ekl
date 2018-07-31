@@ -23,7 +23,7 @@ extern int GOOD; extern int FAIR; extern int POOR; extern float omega1;
 extern float omega2; extern float omega3; extern float omega4_w; extern float omega5_w; extern float omega6_w; extern float omega7_w; 
 extern float omega8_w; extern float omega4_h; extern float omega5_h; extern float omega6_h; extern float omega7_h; extern float omega8_h;
 extern float omega9_w; extern float omega10_w; extern float omega9_h; extern float omega10_h;
-extern float normal_arr[3]; 
+extern float normal_arr[4]; 
 extern float p_education; 
 extern float HK1; extern float HK2; extern float HK3; extern float HK4;
 extern float unemp_w; extern float unemp_h;

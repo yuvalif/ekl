@@ -5,7 +5,8 @@
 #include "global_params.h"
 #include "gross_to_net.h"
 #include "random_values.h"
-
+#include "emax.h"
+#include "interpolation.h"
 
 calculate_utility_result_t calculate_utility(int cohort, int cb_const, int cb_per_child, int W_N, int H_N, int C_N, 
         float wage_full_w, float wage_part_w, float wage_full_h, float wage_part_h, float capacity_w, float capacity_h, 
@@ -719,59 +720,234 @@ calculate_utility_result_t calculate_utility(int cohort, int cb_const, int cb_pe
         }   // MARRIED AND NOT MARRIED
         else
         {   // t is not the terminal period so add EMAX
-            // EMAX(t,K,N_Y,N_O,prev_state,ability_w_index,M,HE+t,HS,Q_INDEX, ability_h_index)
-            // will need to multiply this loop in dynamic model to control for kids, as in t=T !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-            U_W[1]= UC_W_S1;
-            U_W[2]= UC_W_S2;
-            U_W[3]= UC_W_S3;
-            U_W[4]= UC_W_S4;
-            U_W[5]= UC_W_S5;
-            U_W[6]= UC_W_S6;
-            U_W[7]= UC_W_S7;
-            U_W[8]= UC_W_M1;
-            U_W[9]= UC_W_M2;
-            U_W[10]= UC_W_M3;
-            U_W[11]= UC_W_M4;
-            U_W[12]= UC_W_M5;
-            U_W[13]= UC_W_M6;
-            U_W[14]= UC_W_M7;
-            U_W[15]= UC_W_M8;
-            U_W[16]= UC_W_M9;
-            U_W[17]= UC_W_M10;
-            U_W[18]= UC_W_M11;
-            U_W[19]= UC_W_M12;
-            U_W[20]= UC_W_M13;
-            U_W[21]= UC_W_M14;
-            U_W[22]= UC_W_M15;
-            U_W[23]= UC_W_M16;
-            U_W[24]= UC_W_M17;
-            U_W[25]= UC_W_M18;
-            // husband terminal value
-            U_H[1]= UC_H_S1;
+            // t - time 17-65
+            // HS,WS - schooling - 5 levels grid
+            // HK, WK - experience - 5 level grid
+            // C_N, H_N , W_N - number of children - 4 level grid
+            // H_HEALTH,W_HEALTH - health - 3 level drid
+            // H_L, W_L - taste for leisure - 3 level grid
+            // ability_h_index,ability_w_index - 3 level grid
+            // prev_state_h,prev_state_w - work at t-1 - 3 level grid
+            // PE_H, PE_W - parents education - 2 levels grid
+            // p_minus_1 - pregnancy at t-1, always zero for single men
+            // EMAX_M_UM(t,HS,HK,C_N,H_HEALTH,H_L,ability_h_index,prev_state_h,PE_H, p_minus_1)
+            // EMAX_W_UM(t,WS,WK,C_N,W_HEALTH,W_L,ability_w_index,prev_state_w,PE_W, p_minus_1)
+            // EMAX_M_M(t,WS,WK,C_N,W_HEALTH,W_L,ability_w_index,prev_state_w,PE_W, p_minus_1, HS,HK,H_HEALTH,H_L,ability_h_index,prev_state_h,PE_H,Q_UTILITY)
+            // EMAX_W_M(t,WS,WK,C_N,W_HEALTH,W_L,ability_w_index,prev_state_w,PE_W, p_minus_1, HS,HK,H_HEALTH,H_L,ability_h_index,prev_state_h,PE_H,Q_UTILITY)
+            // need to take care of experience and number of children when calling the EMAX:
+            // if women is pregnant, add 1 to the number of children unless the number is already 4
+
+            if (C_N == 0)
+            {
+                C_N = W_N + H_N;
+            }
+            unsigned C_N_1 = C_N + 1; //number of children at t+1 if pregnant at t
+            if (C_N_1 > 3)	//keep # of children smaller than 3
+            {
+                C_N_1 = 3;
+            }
+            unsigned W_N_1 = W_N +1;  // number of children at t+1 if pregnant at t
+            if (W_N_1 > 3)//keep # of children smaller than 3
+            {
+                W_N_1 = 3;
+            }
+            // if the individual is employed, update the k index and choose the right interpolation 
+            interpolation_result_t interpolation_result;
+
+            interpolation_result = interpolation(WK);
+            unsigned ind1 = interpolation_result.ind1;
+            unsigned ind2 = interpolation_result.ind2;
+            float w1 = interpolation_result.weight1;
+            float w2 = interpolation_result.weight2;
+
+            interpolation_result = interpolation(WK+1);
+            unsigned ind1_1 = interpolation_result.ind1;
+            unsigned ind2_1 = interpolation_result.ind2;
+            float w1_1 = interpolation_result.weight1;
+            float w2_1 = interpolation_result.weight2;
+
+            interpolation_result = interpolation(WK+0.5);
+            unsigned ind1_2 = interpolation_result.ind1;
+            unsigned ind2_2 = interpolation_result.ind2;
+            float w1_2 = interpolation_result.weight1;
+            float w2_2 = interpolation_result.weight2;
+
+            interpolation_result = interpolation(HK);
+            unsigned inh1 = interpolation_result.ind1;
+            unsigned inh2 = interpolation_result.ind2;
+            float h1 = interpolation_result.weight1;
+            float h2 = interpolation_result.weight2;
+
+            interpolation_result = interpolation(HK+1);
+            unsigned inh1_1 = interpolation_result.ind1;
+            unsigned inh2_1 = interpolation_result.ind2;
+            float h1_1 = interpolation_result.weight1;
+            float h2_1 = interpolation_result.weight2;
+
+            interpolation_result = interpolation(HK+0.5);
+            unsigned inh1_2 = interpolation_result.ind1;
+            unsigned inh2_2 = interpolation_result.ind2;
+            float h1_2 = interpolation_result.weight1;
+            float h2_2 = interpolation_result.weight2;
+
+            //////////////////////////////////////////////////////////////////////////////
+            // add EMAX to women's utility 
+            //////////////////////////////////////////////////////////////////////////////
+
+            unsigned W_L;
+            unsigned ability_w_index;
+            unsigned prev_state_w;
+            unsigned PE_W;
+            unsigned H_L;
+            unsigned ability_h_index;
+            unsigned prev_state_h;
+            unsigned PE_H;
+
+
+            U_W[1] = UC_W_S1+  w1*EMAX_W_UM(t,WS,ind1  ,W_N  ,W_HEALTH,W_L,ability_w_index,prev_state_w,PE_W, 0)
+                +(1-w1)*EMAX_W_UM(t,WS,ind2  ,W_N  ,W_HEALTH,W_L,ability_w_index,prev_state_w,PE_W, 0);
+
+            U_W[2] = UC_W_S2+  w1*EMAX_W_UM(t,WS,ind1  ,W_N_1,W_HEALTH,W_L,ability_w_index,prev_state_w,PE_W, 1)
+                +(1-w1)*EMAX_W_UM(t,WS,ind2  ,W_N_1,W_HEALTH,W_L,ability_w_index,prev_state_w,PE_W, 1);
+
+            U_W[3] = UC_W_S3+  w1_1*EMAX_W_UM(t,WS,ind1_1,W_N  ,W_HEALTH,W_L,ability_w_index,prev_state_w,PE_W, 0)
+                +(1-w1_1)*EMAX_W_UM(t,WS,ind2_1,W_N  ,W_HEALTH,W_L,ability_w_index,prev_state_w,PE_W, 0);
+
+            U_W[4] = UC_W_S4+  w1_1*EMAX_W_UM(t,WS,ind1_1,W_N_1,W_HEALTH,W_L,ability_w_index,prev_state_w,PE_W, 1)
+                +(1-w1_1)*EMAX_W_UM(t,WS,ind2_1,W_N_1,W_HEALTH,W_L,ability_w_index,prev_state_w,PE_W, 1);
+
+            U_W[5] = UC_W_S5+  w1_2*EMAX_W_UM(t,WS,ind1_2,W_N  ,W_HEALTH,W_L,ability_w_index,prev_state_w,PE_W, 0)
+                +(1-w1_2)*EMAX_W_UM(t,WS,ind2_2,W_N  ,W_HEALTH,W_L,ability_w_index,prev_state_w,PE_W, 0);
+
+            U_W[6] = UC_W_S6+  w1_2*EMAX_W_UM(t,WS,ind1_2,W_N_1,W_HEALTH,W_L,ability_w_index,prev_state_w,PE_W, 1)
+                +(1-w1_2)*EMAX_W_UM(t,WS,ind2_2,W_N_1,W_HEALTH,W_L,ability_w_index,prev_state_w,PE_W, 1);
+
+            U_W[7] = UC_W_S7+  w1*EMAX_W_UM(t,WS,ind1,W_N  ,W_HEALTH,W_L,ability_w_index,prev_state_w,PE_W, 0)
+                +(1-w1)*EMAX_W_UM(t,WS,ind2,W_N  ,W_HEALTH,W_L,ability_w_index,prev_state_w,PE_W, 0);
+
+            U_W[8] = UC_W_M1+  w1*EMAX_W_M(t,WS,ind1,C_N  ,W_HEALTH,W_L,ability_w_index,prev_state_w,PE_W, 0, HS,inh2_1,H_HEALTH,H_L,ability_h_index,prev_state_h,PE_H,Q_UTILITY)
+                +(1-w1)*EMAX_W_M(t,WS,ind2,C_N  ,W_HEALTH,W_L,ability_w_index,prev_state_w,PE_W, 0, HS,inh2_1,H_HEALTH,H_L,ability_h_index,prev_state_h,PE_H,Q_UTILITY);
+
+            U_W[9] = UC_W_M2+  w1*EMAX_W_M(t,WS,ind1,C_N_1,W_HEALTH,W_L,ability_w_index,prev_state_w,PE_W, 1, HS,inh2_1,H_HEALTH,H_L,ability_h_index,prev_state_h,PE_H,Q_UTILITY)
+                +(1-w1)*EMAX_W_M(t,WS,ind2,C_N_1,W_HEALTH,W_L,ability_w_index,prev_state_w,PE_W, 1, HS,inh2_1,H_HEALTH,H_L,ability_h_index,prev_state_h,PE_H,Q_UTILITY);
+
+            U_W[10]= UC_W_M3+  w1*EMAX_W_M(t,WS,ind1,C_N  ,W_HEALTH,W_L,ability_w_index,prev_state_w,PE_W, 0, HS,inh2_2,H_HEALTH,H_L,ability_h_index,prev_state_h,PE_H,Q_UTILITY)
+                +(1-w1)*EMAX_W_M(t,WS,ind2,C_N  ,W_HEALTH,W_L,ability_w_index,prev_state_w,PE_W, 0, HS,inh2_2,H_HEALTH,H_L,ability_h_index,prev_state_h,PE_H,Q_UTILITY);
+
+            U_W[11]= UC_W_M4+  w1*EMAX_W_M(t,WS,ind1,C_N_1,W_HEALTH,W_L,ability_w_index,prev_state_w,PE_W, 1, HS,inh2_2,H_HEALTH,H_L,ability_h_index,prev_state_h,PE_H,Q_UTILITY)
+                +(1-w1)*EMAX_W_M(t,WS,ind2,C_N_1,W_HEALTH,W_L,ability_w_index,prev_state_w,PE_W, 1, HS,inh2_2,H_HEALTH,H_L,ability_h_index,prev_state_h,PE_H,Q_UTILITY);
+
+            U_W[12]= UC_W_M5+w1_1*EMAX_W_M(t,WS,ind1_1,C_N  ,W_HEALTH,W_L,ability_w_index,prev_state_w,PE_W, 0, HS,inh2,H_HEALTH,H_L,ability_h_index,prev_state_h,PE_H,Q_UTILITY)
+                +(1-w1_1)*EMAX_W_M(t,WS,ind2_1,C_N  ,W_HEALTH,W_L,ability_w_index,prev_state_w,PE_W, 0, HS,inh2,H_HEALTH,H_L,ability_h_index,prev_state_h,PE_H,Q_UTILITY);
+
+            U_W[13]= UC_W_M6+w1_1*EMAX_W_M(t,WS,ind1_1,C_N_1,W_HEALTH,W_L,ability_w_index,prev_state_w,PE_W, 1, HS,inh2,H_HEALTH,H_L,ability_h_index,prev_state_h,PE_H,Q_UTILITY)
+                +(1-w1_1)*EMAX_W_M(t,WS,ind2_1,C_N_1,W_HEALTH,W_L,ability_w_index,prev_state_w,PE_W, 1, HS,inh2,H_HEALTH,H_L,ability_h_index,prev_state_h,PE_H,Q_UTILITY);
+
+            U_W[14]= UC_W_M7+w1_2*EMAX_W_M(t,WS,ind1_2,C_N  ,W_HEALTH,W_L,ability_w_index,prev_state_w,PE_W, 0, HS,inh2,H_HEALTH,H_L,ability_h_index,prev_state_h,PE_H,Q_UTILITY)
+                +(1-w1_2)*EMAX_W_M(t,WS,ind2_2,C_N  ,W_HEALTH,W_L,ability_w_index,prev_state_w,PE_W, 0, HS,inh2,H_HEALTH,H_L,ability_h_index,prev_state_h,PE_H,Q_UTILITY);
+
+            U_W[15]= UC_W_M8+w1_2*EMAX_W_M(t,WS,ind1_2,C_N_1,W_HEALTH,W_L,ability_w_index,prev_state_w,PE_W, 1, HS,inh2,H_HEALTH,H_L,ability_h_index,prev_state_h,PE_H,Q_UTILITY)
+                +(1-w1_2)*EMAX_W_M(t,WS,ind2_2,C_N_1,W_HEALTH,W_L,ability_w_index,prev_state_w,PE_W, 1, HS,inh2,H_HEALTH,H_L,ability_h_index,prev_state_h,PE_H,Q_UTILITY);
+
+            U_W[16]= UC_W_M9+w1_1*EMAX_W_M(t,WS,ind1_1,C_N  ,W_HEALTH,W_L,ability_w_index,prev_state_w,PE_W, 0, HS,inh2_1,H_HEALTH,H_L,ability_h_index,prev_state_h,PE_H,Q_UTILITY)
+                +(1-w1_1)*EMAX_W_M(t,WS,ind2_1,C_N  ,W_HEALTH,W_L,ability_w_index,prev_state_w,PE_W, 0, HS,inh2_1,H_HEALTH,H_L,ability_h_index,prev_state_h,PE_H,Q_UTILITY);
+
+            U_W[17]= UC_W_M10+w1_1*EMAX_W_M(t,WS,ind1_1,C_N  ,W_HEALTH,W_L,ability_w_index,prev_state_w,PE_W, 0, HS,inh2_2,H_HEALTH,H_L,ability_h_index,prev_state_h,PE_H,Q_UTILITY)
+                +(1-w1_1)*EMAX_W_M(t,WS,ind2_1,C_N  ,W_HEALTH,W_L,ability_w_index,prev_state_w,PE_W, 0, HS,inh2_2,H_HEALTH,H_L,ability_h_index,prev_state_h,PE_H,Q_UTILITY);
+
+            U_W[18]= UC_W_M11+w1_2*EMAX_W_M(t,WS,ind1_2,C_N  ,W_HEALTH,W_L,ability_w_index,prev_state_w,PE_W, 0, HS,inh2_2,H_HEALTH,H_L,ability_h_index,prev_state_h,PE_H,Q_UTILITY)
+                +(1-w1_2)*EMAX_W_M(t,WS,ind2_2,C_N  ,W_HEALTH,W_L,ability_w_index,prev_state_w,PE_W, 0, HS,inh2_2,H_HEALTH,H_L,ability_h_index,prev_state_h,PE_H,Q_UTILITY);
+
+            U_W[19]= UC_W_M12+w1_2*EMAX_W_M(t,WS,ind1_2,C_N  ,W_HEALTH,W_L,ability_w_index,prev_state_w,PE_W, 0, HS,inh2_1,H_HEALTH,H_L,ability_h_index,prev_state_h,PE_H,Q_UTILITY)
+                +(1-w1_2)*EMAX_W_M(t,WS,ind2_2,C_N  ,W_HEALTH,W_L,ability_w_index,prev_state_w,PE_W, 0, HS,inh2_1,H_HEALTH,H_L,ability_h_index,prev_state_h,PE_H,Q_UTILITY);
+
+            U_W[20]= UC_W_M13+w1_1*EMAX_W_M(t,WS,ind1_1,C_N_1,W_HEALTH,W_L,ability_w_index,prev_state_w,PE_W, 1, HS,inh2_1,H_HEALTH,H_L,ability_h_index,prev_state_h,PE_H,Q_UTILITY)
+                +(1-w1_1)*EMAX_W_M(t,WS,ind2_1,C_N_1,W_HEALTH,W_L,ability_w_index,prev_state_w,PE_W, 1, HS,inh2_1,H_HEALTH,H_L,ability_h_index,prev_state_h,PE_H,Q_UTILITY);
+
+            U_W[21]= UC_W_M14+w1_1*EMAX_W_M(t,WS,ind1_1,C_N_1,W_HEALTH,W_L,ability_w_index,prev_state_w,PE_W, 1, HS,inh2_2,H_HEALTH,H_L,ability_h_index,prev_state_h,PE_H,Q_UTILITY)
+                +(1-w1_1)*EMAX_W_M(t,WS,ind2_1,C_N_1,W_HEALTH,W_L,ability_w_index,prev_state_w,PE_W, 1, HS,inh2_2,H_HEALTH,H_L,ability_h_index,prev_state_h,PE_H,Q_UTILITY);
+
+            U_W[22]= UC_W_M15+w1_2*EMAX_W_M(t,WS,ind1_2,C_N_1,W_HEALTH,W_L,ability_w_index,prev_state_w,PE_W, 1, HS,inh2_2,H_HEALTH,H_L,ability_h_index,prev_state_h,PE_H,Q_UTILITY)
+                +(1-w1_2)*EMAX_W_M(t,WS,ind2_2,C_N_1,W_HEALTH,W_L,ability_w_index,prev_state_w,PE_W, 1, HS,inh2_2,H_HEALTH,H_L,ability_h_index,prev_state_h,PE_H,Q_UTILITY);
+
+            U_W[23]= UC_W_M16+w1_2*EMAX_W_M(t,WS,ind1_2,C_N_1,W_HEALTH,W_L,ability_w_index,prev_state_w,PE_W, 1, HS,inh2_1,H_HEALTH,H_L,ability_h_index,prev_state_h,PE_H,Q_UTILITY)
+                +(1-w1_2)*EMAX_W_M(t,WS,ind2_2,C_N_1,W_HEALTH,W_L,ability_w_index,prev_state_w,PE_W, 1, HS,inh2_1,H_HEALTH,H_L,ability_h_index,prev_state_h,PE_H,Q_UTILITY);
+
+            U_W[24]= UC_W_M17+  w1*EMAX_W_M(t,WS,ind1  ,C_N  ,W_HEALTH,W_L,ability_w_index,prev_state_w,PE_W, 0, HS,inh2,H_HEALTH,H_L,ability_h_index,prev_state_h,PE_H,Q_UTILITY)
+                +(1-w1)*EMAX_W_M(t,WS,ind2  ,C_N  ,W_HEALTH,W_L,ability_w_index,prev_state_w,PE_W, 0, HS,inh2,H_HEALTH,H_L,ability_h_index,prev_state_h,PE_H,Q_UTILITY);
+
+            U_W[25]= UC_W_M18+  w1*EMAX_W_M(t,WS,ind1  ,C_N_1,W_HEALTH,W_L,ability_w_index,prev_state_w,PE_W, 1, HS,inh2,H_HEALTH,H_L,ability_h_index,prev_state_h,PE_H,Q_UTILITY)
+                +(1-w1)*EMAX_W_M(t,WS,ind2  ,C_N_1,W_HEALTH,W_L,ability_w_index,prev_state_w,PE_W, 1, HS,inh2,H_HEALTH,H_L,ability_h_index,prev_state_h,PE_H,Q_UTILITY);
+
+
+            //////////////////////////////////////////////////////////////////////////////
+            //                          add EMAX to men's utility                     
+            //////////////////////////////////////////////////////////////////////////////
+            U_H[1]= UC_H_S1  +h1*EMAX_M_UM(t,HS,inh1,H_N,H_HEALTH,H_L,ability_h_index,prev_state_h,PE_H, 0)
+                +(1-h1)*EMAX_M_UM(t,HS,inh2,H_N,H_HEALTH,H_L,ability_h_index,prev_state_h,PE_H, 0);
             U_H[2]= -99999;
-            U_H[3]= UC_H_S3;
+            U_H[3]= UC_H_S3  +h1_1*EMAX_M_UM(t,HS,inh1_1,H_N,H_HEALTH,H_L,ability_h_index,prev_state_h,PE_H, 0)
+                +(1-h1_1)*EMAX_M_UM(t,HS,inh2_1,H_N,H_HEALTH,H_L,ability_h_index,prev_state_h,PE_H, 0); 
             U_H[4]= -99999;
-            U_H[5]= UC_H_S5;
+            U_H[5]= UC_H_S5  +h1_2*EMAX_M_UM(t,HS,inh1_2,H_N,H_HEALTH,H_L,ability_h_index,prev_state_h,PE_H, 0)
+                +(1-h1_2)*EMAX_M_UM(t,HS,inh2_2,H_N,H_HEALTH,H_L,ability_h_index,prev_state_h,PE_H, 0); 
             U_H[6]= -99999;
-            U_H[7]= UC_H_S7;
-            U_H[8]= UC_H_M1;
-            U_H[9]= UC_H_M2;
-            U_H[10]= UC_H_M3;
-            U_H[11]= UC_H_M4;
-            U_H[12]= UC_H_M5;
-            U_H[13]= UC_H_M6;
-            U_H[14]= UC_H_M7;
-            U_H[15]= UC_H_M8;
-            U_H[16]= UC_H_M9;
-            U_H[17]= UC_H_M10;
-            U_H[18]= UC_H_M11;
-            U_H[19]= UC_H_M12;
-            U_H[20]= UC_H_M13;
-            U_H[21]= UC_H_M14;
-            U_H[22]= UC_H_M15;
-            U_H[23]= UC_H_M16;
-            U_H[24]= UC_H_M17;
-            U_H[25]= UC_H_M18;
+            U_H[7]= UC_H_S7    +h1*EMAX_M_UM(t,HS,inh1,H_N,H_HEALTH,H_L,ability_h_index,prev_state_h,PE_H, 0)
+                +(1-h1)*EMAX_M_UM(t,HS,inh2,H_N,H_HEALTH,H_L,ability_h_index,prev_state_h,PE_H, 0); 
+            U_H[8] = UC_H_M1 +h1_1*EMAX_M_M(t,WS,ind2,  C_N,  W_HEALTH,W_L,ability_w_index,prev_state_w,PE_W, 0, HS,inh1_1,H_HEALTH,H_L,ability_h_index,prev_state_h,PE_H,Q_UTILITY);
+            +(1-h1_1)*EMAX_M_M(t,WS,ind2,  C_N,  W_HEALTH,W_L,ability_w_index,prev_state_w,PE_W, 0, HS,inh2_1,H_HEALTH,H_L,ability_h_index,prev_state_h,PE_H,Q_UTILITY);
+
+            U_H[9] = UC_H_M2 +h1_1*EMAX_M_M(t,WS,ind2,  C_N_1,W_HEALTH,W_L,ability_w_index,prev_state_w,PE_W, 1, HS,inh1_1,H_HEALTH,H_L,ability_h_index,prev_state_h,PE_H,Q_UTILITY);
+            +(1-h1_1)*EMAX_M_M(t,WS,ind2,  C_N_1,W_HEALTH,W_L,ability_w_index,prev_state_w,PE_W, 1, HS,inh2_1,H_HEALTH,H_L,ability_h_index,prev_state_h,PE_H,Q_UTILITY);
+
+            U_H[10]= UC_H_M3 +h1_2*EMAX_M_M(t,WS,ind2,  C_N,  W_HEALTH,W_L,ability_w_index,prev_state_w,PE_W, 0, HS,inh1_2,H_HEALTH,H_L,ability_h_index,prev_state_h,PE_H,Q_UTILITY);
+            +(1-h1_2)*EMAX_M_M(t,WS,ind2,  C_N,  W_HEALTH,W_L,ability_w_index,prev_state_w,PE_W, 0, HS,inh2_2,H_HEALTH,H_L,ability_h_index,prev_state_h,PE_H,Q_UTILITY);
+
+            U_H[11]= UC_H_M4 +h1_2*EMAX_M_M(t,WS,ind2,  C_N_1,W_HEALTH,W_L,ability_w_index,prev_state_w,PE_W, 1, HS,inh1_2,H_HEALTH,H_L,ability_h_index,prev_state_h,PE_H,Q_UTILITY);
+            +(1-h1_2)*EMAX_M_M(t,WS,ind2,  C_N_1,W_HEALTH,W_L,ability_w_index,prev_state_w,PE_W, 1, HS,inh2_2,H_HEALTH,H_L,ability_h_index,prev_state_h,PE_H,Q_UTILITY);
+
+            U_H[12]= UC_H_M5   +h1*EMAX_M_M(t,WS,ind2_1,C_N,  W_HEALTH,W_L,ability_w_index,prev_state_w,PE_W, 0, HS,inh1,H_HEALTH,H_L,ability_h_index,prev_state_h,PE_H,Q_UTILITY);
+            +(1-h1)*EMAX_M_M(t,WS,ind2_1,C_N,  W_HEALTH,W_L,ability_w_index,prev_state_w,PE_W, 0, HS,inh2,H_HEALTH,H_L,ability_h_index,prev_state_h,PE_H,Q_UTILITY);
+
+            U_H[13]= UC_H_M6   +h1*EMAX_M_M(t,WS,ind2_1,C_N_1,W_HEALTH,W_L,ability_w_index,prev_state_w,PE_W, 1, HS,inh1,H_HEALTH,H_L,ability_h_index,prev_state_h,PE_H,Q_UTILITY);
+            +(1-h1)*EMAX_M_M(t,WS,ind2_1,C_N_1,W_HEALTH,W_L,ability_w_index,prev_state_w,PE_W, 1, HS,inh2,H_HEALTH,H_L,ability_h_index,prev_state_h,PE_H,Q_UTILITY); 
+
+            U_H[14]= UC_H_M7   +h1*EMAX_M_M(t,WS,ind2_2,C_N,  W_HEALTH,W_L,ability_w_index,prev_state_w,PE_W, 0, HS,inh1,H_HEALTH,H_L,ability_h_index,prev_state_h,PE_H,Q_UTILITY);
+            +(1-h1)*EMAX_M_M(t,WS,ind2_2,C_N,  W_HEALTH,W_L,ability_w_index,prev_state_w,PE_W, 0, HS,inh2,H_HEALTH,H_L,ability_h_index,prev_state_h,PE_H,Q_UTILITY);
+
+            U_H[15]= UC_H_M8   +h1*EMAX_M_M(t,WS,ind2_2,C_N_1,W_HEALTH,W_L,ability_w_index,prev_state_w,PE_W, 1, HS,inh1,H_HEALTH,H_L,ability_h_index,prev_state_h,PE_H,Q_UTILITY);
+            +(1-h1)*EMAX_M_M(t,WS,ind2_2,C_N_1,W_HEALTH,W_L,ability_w_index,prev_state_w,PE_W, 1, HS,inh2,H_HEALTH,H_L,ability_h_index,prev_state_h,PE_H,Q_UTILITY);
+
+            U_H[16]= UC_H_M9 +h1_1*EMAX_M_M(t,WS,ind2_1,C_N,  W_HEALTH,W_L,ability_w_index,prev_state_w,PE_W, 0, HS,inh1_1,H_HEALTH,H_L,ability_h_index,prev_state_h,PE_H,Q_UTILITY);
+            +(1-h1_1)*EMAX_M_M(t,WS,ind2_1,C_N,  W_HEALTH,W_L,ability_w_index,prev_state_w,PE_W, 0, HS,inh2_1,H_HEALTH,H_L,ability_h_index,prev_state_h,PE_H,Q_UTILITY);
+
+            U_H[17]= UC_H_M10+h1_2*EMAX_M_M(t,WS,ind2_1,C_N,  W_HEALTH,W_L,ability_w_index,prev_state_w,PE_W, 0, HS,inh1_2,H_HEALTH,H_L,ability_h_index,prev_state_h,PE_H,Q_UTILITY);
+            +(1-h1_2)*EMAX_M_M(t,WS,ind2_1,C_N,  W_HEALTH,W_L,ability_w_index,prev_state_w,PE_W, 0, HS,inh2_2,H_HEALTH,H_L,ability_h_index,prev_state_h,PE_H,Q_UTILITY);
+
+            U_H[18]= UC_H_M11+h1_2*EMAX_M_M(t,WS,ind2_2,C_N,  W_HEALTH,W_L,ability_w_index,prev_state_w,PE_W, 0, HS,inh1_2,H_HEALTH,H_L,ability_h_index,prev_state_h,PE_H,Q_UTILITY);
+            +(1-h1_2)*EMAX_M_M(t,WS,ind2_2,C_N,  W_HEALTH,W_L,ability_w_index,prev_state_w,PE_W, 0, HS,inh2_2,H_HEALTH,H_L,ability_h_index,prev_state_h,PE_H,Q_UTILITY);
+
+            U_H[19]= UC_H_M12+h1_1*EMAX_M_M(t,WS,ind2_2,C_N,  W_HEALTH,W_L,ability_w_index,prev_state_w,PE_W, 0, HS,inh1_1,H_HEALTH,H_L,ability_h_index,prev_state_h,PE_H,Q_UTILITY);
+            +(1-h1_1)*EMAX_M_M(t,WS,ind2_2,C_N,  W_HEALTH,W_L,ability_w_index,prev_state_w,PE_W, 0, HS,inh2_1,H_HEALTH,H_L,ability_h_index,prev_state_h,PE_H,Q_UTILITY);
+
+            U_H[20]= UC_H_M13 +h1_1*EMAX_M_M(t,WS,ind2_1,C_N_1,W_HEALTH,W_L,ability_w_index,prev_state_w,PE_W, 1, HS,inh1_1,H_HEALTH,H_L,ability_h_index,prev_state_h,PE_H,Q_UTILITY);
+            +(1-h1_1)*EMAX_M_M(t,WS,ind2_1,C_N_1,W_HEALTH,W_L,ability_w_index,prev_state_w,PE_W, 1, HS,inh2_1,H_HEALTH,H_L,ability_h_index,prev_state_h,PE_H,Q_UTILITY);
+
+            U_H[21]= UC_H_M14+h1_2*EMAX_M_M(t,WS,ind2_1,C_N_1,W_HEALTH,W_L,ability_w_index,prev_state_w,PE_W, 1, HS,inh1_2,H_HEALTH,H_L,ability_h_index,prev_state_h,PE_H,Q_UTILITY);
+            +(1-h1_2)*EMAX_M_M(t,WS,ind2_1,C_N_1,W_HEALTH,W_L,ability_w_index,prev_state_w,PE_W, 1, HS,inh2_2,H_HEALTH,H_L,ability_h_index,prev_state_h,PE_H,Q_UTILITY);
+
+            U_H[22]= UC_H_M15+h1_2*EMAX_M_M(t,WS,ind2_2,C_N_1,W_HEALTH,W_L,ability_w_index,prev_state_w,PE_W, 1, HS,inh1_2,H_HEALTH,H_L,ability_h_index,prev_state_h,PE_H,Q_UTILITY);
+            +(1-h1_2)*EMAX_M_M(t,WS,ind2_2,C_N_1,W_HEALTH,W_L,ability_w_index,prev_state_w,PE_W, 1, HS,inh2_2,H_HEALTH,H_L,ability_h_index,prev_state_h,PE_H,Q_UTILITY);
+
+            U_H[23]= UC_H_M16+h1_1*EMAX_M_M(t,WS,ind2_2,C_N_1,W_HEALTH,W_L,ability_w_index,prev_state_w,PE_W, 1, HS,inh1_1,H_HEALTH,H_L,ability_h_index,prev_state_h,PE_H,Q_UTILITY);
+            +(1-h1_1)*EMAX_M_M(t,WS,ind2_2,C_N_1,W_HEALTH,W_L,ability_w_index,prev_state_w,PE_W, 1, HS,inh2_1,H_HEALTH,H_L,ability_h_index,prev_state_h,PE_H,Q_UTILITY);
+
+            U_H[24]= UC_H_M17  +h1*EMAX_M_M(t,WS,ind2,  C_N,  W_HEALTH,W_L,ability_w_index,prev_state_w,PE_W, 0, HS,inh1,H_HEALTH,H_L,ability_h_index,prev_state_h,PE_H,Q_UTILITY);
+            +(1-h1)*EMAX_M_M(t,WS,ind2,  C_N,  W_HEALTH,W_L,ability_w_index,prev_state_w,PE_W, 0, HS,inh2,H_HEALTH,H_L,ability_h_index,prev_state_h,PE_H,Q_UTILITY);
+
+            U_H[25]= UC_H_M18  +h1*EMAX_M_M(t,WS,ind2,C_N_1,  W_HEALTH,W_L,ability_w_index,prev_state_w,PE_W, 1, HS,inh1,H_HEALTH,H_L,ability_h_index,prev_state_h,PE_H,Q_UTILITY);
+            +(1-h1)*EMAX_M_M(t,WS,ind2,C_N_1,  W_HEALTH,W_L,ability_w_index,prev_state_w,PE_W, 1, HS,inh2,H_HEALTH,H_L,ability_h_index,prev_state_h,PE_H,Q_UTILITY);
+
         }
 
         // delete impossible options - no job offer FULL wife

@@ -3,7 +3,7 @@
 
 CXX ?= g++ 
 
-CXXFLAGS ?= -Wall --std=c++11 -O2 -Wno-unused-but-set-variable -Wno-unused-variable
+CXXFLAGS ?= -Wall --std=c++11 -O2 -Wno-unused-but-set-variable -Wno-unused-variable -Wno-unused-value -Wno-maybe-uninitialized
 
 LIB = libekl.a
 
@@ -17,9 +17,11 @@ TESTS = $(wildcard *_test.cpp)
 
 TEST_BIN = test_runner
 
-all: $(PROG)
+all: lib
 
 lib: $(LIB)
+
+estimation: $(PROG)
 
 $(PROG): $(LIB)
 	$(CXX) $(CXXFLAGS) -o $(PROG) $(addsuffix .cpp,$(PROG)) $(LIB)
