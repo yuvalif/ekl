@@ -6,4 +6,10 @@ Compilation
 
 * Some parts of the software are using the boost library (see here: https://www.boost.org/users/download/ for more details)
 
+* "make clean" would delete all binaries and object files
+
+Execution
+=========
+
+To execute the program run: ./min_estimation <cohort>
 
